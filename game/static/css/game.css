@@ -7,7 +7,7 @@
 }
 
 .ac-game-menu-field {
-    width: 20vw;
+    width: 19vw;
     position: relative;
     top: 35vh;
     left: 19vw;
@@ -16,7 +16,7 @@
 .ac-game-menu-field-item {
     color: pink;
     height: 7vh;
-    width: 20vw;
+    width: 19vw;
     font-size: 6vh;
     font-style: italic;
     padding: 2vh;
@@ -25,9 +25,17 @@
     border-radius: 10px;
     letter-spacing: 0.3vw;
     cursor: pointer;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .ac-game-menu-field-item:hover {
     transform: scale(1.2);
     transition: 300ms;
+}
+
+.ac-game-playground {
+    width: 100%;
+    height: 100%;
+    user-select: none;
 }
