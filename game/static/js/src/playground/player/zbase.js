@@ -14,11 +14,19 @@ class Player extends AcGameObject {
         this.vy = 0;
         this.move_length = 0;
         this.cur_skill = null;
+        this.damage_x = 0;
+        this.damage_y = 0;
+        this.damage_speed = 0;
+        this.friction = 0.9;
     }
 
     start() {
         if (this.is_me) {
             this.add_listening_events();
+        } else {
+            let tx = Math.random() * this.playground.width;
+            let ty = Math.random() * this.playground.height;
+            this.move_to(tx, ty);
         }
     }
 
@@ -52,7 +60,7 @@ class Player extends AcGameObject {
     }
 
     shoot_fireball(tx, ty) {
-        console.log("a", tx, ty);
+        // console.log("a", tx, ty);
         let x = this.x, y = this.y;
         let radius = this.playground.height * 0.01;
         let angle = Math.atan2(ty - this.y, tx - this.x);
@@ -60,8 +68,9 @@ class Player extends AcGameObject {
         let color = "orange";
         let speed = this.playground.height * 0.5;
         let move_length = this.playground.height * 1.5;
-        console.log(x, y, radius, angle, vx, vy, color, speed, move_length);
-        new FireBall(this.playground, this, x, y, radius, vx, vy, color, speed, move_length);
+        let damage = this.playground.height * 0.01;
+        // console.log(x, y, radius, angle, vx, vy, color, speed, move_length);
+        new FireBall(this.playground, this, x, y, radius, vx, vy, color, speed, move_length, damage);
     }
 
     get_dist(x1, x2, y1, y2) {
@@ -78,16 +87,42 @@ class Player extends AcGameObject {
     }
 
     update() {
-        if (this.move_length < this.eps) {
-            this.move_length = 0;
+        if (this.damage_speed > this.eps) {
             this.vx = this.vy = 0;
+            this.move_length = 0;
+            this.x += this.damage_x * this.damage_speed * this.timedelta / 1000;
+            this.y += this.damage_y * this.damage_speed * this.timedelta / 1000;
+            this.damage_speed *= this.friction;
         } else {
-            let moved = Math.min(this.speed*this.timedelta / 1000, this.move_length);
-            this.x += this.vx*moved;
-            this.y += this.vy*moved;
-            this.move_length -= moved;
+            if (this.move_length < this.eps) {
+                this.move_length = 0;
+                this.vx = this.vy = 0;
+                if (!this.is_me) {
+                    let tx = Math.random() * this.playground.width;
+                    let ty = Math.random() * this.playground.height;
+                    this.move_to(tx, ty);
+
+                }
+            } else {
+                let moved = Math.min(this.speed*this.timedelta / 1000, this.move_length);
+                this.x += this.vx*moved;
+                this.y += this.vy*moved;
+                this.move_length -= moved;
+            }
         }
         this.render();
+    }
+
+    is_attacked(angle, damage) {
+        this.radius -= damage;
+        if (this.radius < this.eps) {
+            this.destroy();
+            return false;
+        }
+        this.damage_x = Math.cos(angle);
+        this.damage_y = Math.sin(angle);
+        this.damage_speed = damage * 2;
+        this.speed *= 0.8;
     }
 
     render() {
