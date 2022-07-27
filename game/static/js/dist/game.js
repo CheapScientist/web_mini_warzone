@@ -126,6 +126,47 @@ class GameMap extends AcGameObject {
         this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
     }
 }
+class Particle extends AcGameObject {
+    constructor(playground, x, y, radius, vx, vy, color, speed, move_length) {
+        super();
+        this.playground = playground;
+        this.ctx = this.playground.game_map.ctx;
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.color = color;
+        this.speed = speed;
+        this.friction = 0.9;
+        this.radius = radius;
+        this.eps = 1;
+        this.move_length = move_length;
+    }
+
+    start() {
+    }
+
+    update() {
+        if (this.speed < this.eps || this.move_length < this.eps) {
+            this.destroy();
+            return false;
+        }
+        let moved = Math.min(this.move_length, this.speed * this.timedelta/1000);
+        // console.log(moved);
+        this.x += this.vx*moved;
+        this.y += this.vy*moved;
+        this.speed *= this.friction;
+        this.move_length -= moved;
+        this.render();
+    }
+
+    render() {
+        this.ctx.beginPath();
+        this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        this.ctx.fillStyle = this.color;
+        this.ctx.fill();
+    }
+}
 class Player extends AcGameObject {
     constructor(playground, x, y, radius, color, speed, is_me) {
         super();
@@ -146,6 +187,7 @@ class Player extends AcGameObject {
         this.damage_y = 0;
         this.damage_speed = 0;
         this.friction = 0.9;
+        this.spent_time = 0;
     }
 
     start() {
@@ -193,7 +235,7 @@ class Player extends AcGameObject {
         let radius = this.playground.height * 0.01;
         let angle = Math.atan2(ty - this.y, tx - this.x);
         let vx = Math.cos(angle), vy = Math.sin(angle);
-        let color = "orange";
+        let color = this.color;
         let speed = this.playground.height * 0.5;
         let move_length = this.playground.height * 1.5;
         let damage = this.playground.height * 0.01;
@@ -215,7 +257,13 @@ class Player extends AcGameObject {
     }
 
     update() {
-        if (this.damage_speed > this.eps) {
+        this.spent_time += this.timedelta / 1000;
+        if (this.spent_time > 5 && Math.random() < 1 / 300.0 && !this.is_me) {
+            let player = this.playground.players[Math.floor(Math.random()*this.playground.players.length)];
+            this.shoot_fireball(player.x, player.y);
+        }
+
+        if (this.damage_speed > 10) {
             this.vx = this.vy = 0;
             this.move_length = 0;
             this.x += this.damage_x * this.damage_speed * this.timedelta / 1000;
@@ -249,15 +297,35 @@ class Player extends AcGameObject {
         }
         this.damage_x = Math.cos(angle);
         this.damage_y = Math.sin(angle);
-        this.damage_speed = damage * 2;
-        this.speed *= 0.8;
+        this.damage_speed = damage * 100;
+        this.speed *= 1.1;
+        for (let i = 0; i < 20 + Math.random() * 10; i ++) {
+            let x = this.x, y = this.y;
+            let radius = this.radius * Math.random() * 0.1;
+            let angle = Math.PI * 2 * Math.random();
+            let vx = Math.cos(angle), vy = Math.sin(angle);
+            let color = this.color;
+            let speed = this.speed * 10;
+            let move_length = this.radius * Math.random() * 10;
+            new Particle(this.playground, x, y, radius, vx, vy, color, speed, move_length);
+        }
     }
+
+
 
     render() {
         this.ctx.beginPath();
         this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, false);
         this.ctx.fillStyle = this.color;
         this.ctx.fill();
+    }
+
+    on_destroy() {
+        for (let i = 0; i < this.playground.players.length; i ++) {
+            if (this.playground.players[i] === this) {
+                this.playground.players.splice(i, 1);
+            }
+        }
     }
 }
 class FireBall extends AcGameObject {
@@ -343,13 +411,26 @@ class AcGamePlayground{
         this.height = this.$playground.height();
         this.game_map = new GameMap(this);
         this.players= [];
-        this.players.push(new Player(this, this.width / 2, this.height / 2, this.height * 0.05, "white", this.height * 0.15, true));
+        this.players.push(new Player(this, this.width / 2, this.height / 2, this.height * 0.05, "white", this.height * 0.5, true));
 
         for (let i = 0; i < 5; i++) {
-            this.players.push(new Player(this, this.width / 2, this.height / 2, this.height * 0.05, "green", this.height * 0.15, false));
+            this.players.push(new Player(this, this.width / 2, this.height / 2, this.height * 0.05, this.get_random_color_2(), this.height * 0.15, false));
         }
 
         this.start();
+    }
+
+    get_random_color() {
+        let colors = ["blue", "grey", "pink", "orange", "green"];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    get_random_color_2() {
+        let r = Math.floor(Math.random() * 255),
+            g = Math.floor(Math.random() * 255),
+            b = Math.floor(Math.random() * 255);
+
+        return 'rgb(' + r + ',' + g + ',' + b + ')';
     }
 
     start() {
