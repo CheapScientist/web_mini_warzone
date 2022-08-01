@@ -142,7 +142,7 @@ class Player extends AcGameObject {
         }
     }
 
-
+    
 
     render() {
         this.ctx.beginPath();
